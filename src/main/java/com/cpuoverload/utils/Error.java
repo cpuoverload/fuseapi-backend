@@ -9,7 +9,11 @@ public enum Error {
     UNLOGIN_ERROR(10002, "未登录"),
     FORBBIDEN_ERROR(10003, "无权限"),
     SYSTEM_ERROR(10004, "系统异常"),
-    DUPLICATED_USERNAME_ERROR(10005, "用户名重复");
+    DUPLICATED_USERNAME_ERROR(10005, "用户名重复"),
+    USER_NOT_FOUND(10006, "用户不存在"),
+    PASSWORD_ERROR(10007, "密码错误"),
+    DELETE_ERROR(10008, "删除失败"),
+    UPDATE_ERROR(10009, "更新失败");
 
     private final int code;
     private final String message;
