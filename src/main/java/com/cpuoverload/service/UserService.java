@@ -15,6 +15,8 @@ import java.util.List;
  */
 public interface UserService extends IService<User> {
 
+    Long getLoginUserId(HttpServletRequest request);
+
     Long register(String username, String password);
 
     UserVo login(String username, String password, HttpServletRequest request);
@@ -25,15 +27,13 @@ public interface UserService extends IService<User> {
 
     boolean updateMyInfo(User user);
 
-    boolean updateUser(User user);
-
-    boolean deleteUser(Long id);
-
-    Long getLoginUserId(HttpServletRequest request);
-
     UserVo getUserById(Long id);
 
     List<UserVo> listUser(ListRequest listRequest);
 
     Long addUser(User user);
+
+    boolean updateUser(User user);
+
+    boolean deleteUser(Long id);
 }

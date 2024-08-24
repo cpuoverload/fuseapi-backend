@@ -33,6 +33,39 @@ import java.util.stream.Collectors;
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
 
+    /**
+     * 校验参数
+     * @param username
+     * @param password
+     */
+    public void validate(String username, String password) {
+        if (username == null || password == null) {
+            throw new BusinessException(Error.PARAMS_ERROR);
+        }
+        if (username.length() < 6) {
+            throw new BusinessException(Error.PARAMS_ERROR, "用户名长度少于 6 位");
+        }
+        if (password.length() < 8) {
+            throw new BusinessException(Error.PARAMS_ERROR, "密码长度少于 8 位");
+        }
+    }
+
+    /**
+     * entity 转换为 vo
+     * @param user
+     * @return
+     */
+    public UserVo entityToVo(User user) {
+        UserVo userVo = new UserVo();
+        BeanUtils.copyProperties(user, userVo);
+        return userVo;
+    }
+
+    public Long getLoginUserId(HttpServletRequest request) {
+        UserVo userVo = (UserVo) request.getSession().getAttribute(Constant.LOGIN_USER);
+        return userVo.getId();
+    }
+
     @Override
     public Long register(String username, String password) {
         // 1. 校验参数
@@ -117,66 +150,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public boolean updateUser(User user) {
-        String nickname = user.getNickname();
-        String password = user.getPassword();
-        String role = user.getRole();
-        if (nickname == null && password == null && role == null) {
-            throw new BusinessException(Error.PARAMS_ERROR, "没有要更新的内容");
-        }
-        if (nickname != null && nickname.length() < 2) {
-            throw new BusinessException(Error.PARAMS_ERROR, "昵称长度少于 2 位");
-        }
-        if (password != null && password.length() < 8) {
-            throw new BusinessException(Error.PARAMS_ERROR, "密码长度少于 8 位");
-        } else {
-            user.setPassword(DigestUtil.bcrypt(password));
-        }
-        if (role != null && !role.equals("user") && !role.equals("admin")) {
-            throw new BusinessException(Error.PARAMS_ERROR, "角色不合法");
-        }
-        return this.updateById(user);
-    }
-
-    @Override
-    public boolean deleteUser(Long id) {
-        return this.removeById(id);
-    }
-
-    /**
-     * 校验参数
-     * @param username
-     * @param password
-     */
-    public void validate(String username, String password) {
-        if (username == null || password == null) {
-            throw new BusinessException(Error.PARAMS_ERROR);
-        }
-        if (username.length() < 6) {
-            throw new BusinessException(Error.PARAMS_ERROR, "用户名长度少于 6 位");
-        }
-        if (password.length() < 8) {
-            throw new BusinessException(Error.PARAMS_ERROR, "密码长度少于 8 位");
-        }
-    }
-
-    /**
-     * entity 转换为 vo
-     * @param user
-     * @return
-     */
-    public UserVo entityToVo(User user) {
-        UserVo userVo = new UserVo();
-        BeanUtils.copyProperties(user, userVo);
-        return userVo;
-    }
-
-    public Long getLoginUserId(HttpServletRequest request) {
-        UserVo userVo = (UserVo) request.getSession().getAttribute(Constant.LOGIN_USER);
-        return userVo.getId();
-    }
-
-    @Override
     public UserVo getUserById(Long id) {
         User user = this.getById(id);
         if (user == null) {
@@ -211,6 +184,33 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(Error.SYSTEM_ERROR, "添加用户失败");
         }
         return user.getId();
+    }
+
+    @Override
+    public boolean updateUser(User user) {
+        String nickname = user.getNickname();
+        String password = user.getPassword();
+        String role = user.getRole();
+        if (nickname == null && password == null && role == null) {
+            throw new BusinessException(Error.PARAMS_ERROR, "没有要更新的内容");
+        }
+        if (nickname != null && nickname.length() < 2) {
+            throw new BusinessException(Error.PARAMS_ERROR, "昵称长度少于 2 位");
+        }
+        if (password != null && password.length() < 8) {
+            throw new BusinessException(Error.PARAMS_ERROR, "密码长度少于 8 位");
+        } else {
+            user.setPassword(DigestUtil.bcrypt(password));
+        }
+        if (role != null && !role.equals("user") && !role.equals("admin")) {
+            throw new BusinessException(Error.PARAMS_ERROR, "角色不合法");
+        }
+        return this.updateById(user);
+    }
+
+    @Override
+    public boolean deleteUser(Long id) {
+        return this.removeById(id);
     }
 }
 
