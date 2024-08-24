@@ -5,8 +5,16 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import javax.annotation.Resource;
+
 @Configuration
 public class AppConfig implements WebMvcConfigurer {
+
+    @Resource
+    private LoginInterceptor loginInterceptor;
+
+    @Resource
+    private AdminInterceptor adminInterceptor;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -19,7 +27,10 @@ public class AppConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new LoginInterceptor())
+        registry.addInterceptor(loginInterceptor)
+                .addPathPatterns("/**");
+
+        registry.addInterceptor(adminInterceptor)
                 .addPathPatterns("/**");
     }
 }

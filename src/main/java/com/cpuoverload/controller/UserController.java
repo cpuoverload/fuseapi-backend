@@ -1,5 +1,6 @@
 package com.cpuoverload.controller;
 
+import com.cpuoverload.config.RequiresAdmin;
 import com.cpuoverload.config.RequiresLogin;
 import com.cpuoverload.model.dto.user.*;
 import com.cpuoverload.model.entity.User;
@@ -82,7 +83,7 @@ public class UserController {
     }
 
     @GetMapping("/get/{id}")
-    // 管理员
+    @RequiresAdmin
     public ApiResponse<UserVo> getUserById(@PathVariable Long id) {
         if (id == null) {
             throw new BusinessException(Error.PARAMS_ERROR);
@@ -92,7 +93,7 @@ public class UserController {
     }
 
     @PostMapping("/list")
-    // 管理员
+    @RequiresAdmin
     public ApiResponse<List<UserVo>> listUser(@RequestBody ListRequest listRequest) {
         if (listRequest == null) {
             throw new BusinessException(Error.PARAMS_ERROR);
@@ -102,7 +103,7 @@ public class UserController {
     }
 
     @PostMapping("/add")
-    // 管理员
+    @RequiresAdmin
     public ApiResponse<Long> addUser(@RequestBody AddRequest addRequest) {
         if (addRequest == null) {
             throw new BusinessException(Error.PARAMS_ERROR);
@@ -117,7 +118,7 @@ public class UserController {
     }
 
     @PostMapping("/update")
-    // 管理员
+    @RequiresAdmin
     public ApiResponse<Boolean> updateUser(@RequestBody UpdateRequest updateRequest) {
         if (updateRequest == null) {
             throw new BusinessException(Error.PARAMS_ERROR);
@@ -132,7 +133,7 @@ public class UserController {
     }
 
     @PostMapping("/delete")
-    // 管理员
+    @RequiresAdmin
     public ApiResponse<Boolean> deleteUser(@RequestBody IdRequest idRequest) {
         if (idRequest == null) {
             throw new BusinessException(Error.PARAMS_ERROR);
