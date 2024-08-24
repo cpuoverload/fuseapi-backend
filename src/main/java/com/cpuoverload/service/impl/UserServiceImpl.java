@@ -34,13 +34,51 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
 
     /**
-     * 校验参数
+     * 在 insert/update 时校验参数
+     * @param user 封装参数
+     * @param isUpdate 是否是更新操作
+     */
+    public void validate(User user, boolean isUpdate) {
+        if (user == null) {
+            throw new BusinessException(Error.PARAMS_ERROR);
+        }
+        Long id = user.getId();
+        String username = user.getUsername();
+        String password = user.getPassword();
+        String nickname = user.getNickname();
+        String role = user.getRole();
+
+        if (isUpdate) {
+            if (id == null) {
+                throw new BusinessException(Error.PARAMS_ERROR, "用户 id 为空");
+            }
+            if (StringUtils.isAllBlank(password, nickname, role)) {
+                throw new BusinessException(Error.PARAMS_ERROR, "没有填写要更新的内容");
+            }
+        } else {
+            if (StringUtils.isAnyBlank(username, password))
+                throw new BusinessException(Error.PARAMS_ERROR, "用户名、密码不能为空");
+        }
+
+        if (StringUtils.isNotBlank(username) && username.length() < 6) {
+            throw new BusinessException(Error.PARAMS_ERROR, "用户名长度少于 6 位");
+        }
+        if (StringUtils.isNotBlank(password) && password.length() < 8) {
+            throw new BusinessException(Error.PARAMS_ERROR, "密码长度少于 8 位");
+        }
+        if (role != null && !role.equals("user") && !role.equals("admin")) {
+            throw new BusinessException(Error.PARAMS_ERROR, "角色不合法");
+        }
+    }
+
+    /**
+     * 登录校验
      * @param username
      * @param password
      */
-    public void validate(String username, String password) {
-        if (username == null || password == null) {
-            throw new BusinessException(Error.PARAMS_ERROR);
+    public void validateLogin(String username, String password) {
+        if (StringUtils.isAnyBlank(username, password)) {
+            throw new BusinessException(Error.PARAMS_ERROR, "用户名、密码不能为空");
         }
         if (username.length() < 6) {
             throw new BusinessException(Error.PARAMS_ERROR, "用户名长度少于 6 位");
@@ -67,39 +105,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public Long register(String username, String password) {
-        // 1. 校验参数
-        validate(username, password);
-        // 2. 判断 username 是否重复
-        synchronized (username.intern()) {
-            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(User::getUsername, username);
-            long count = this.count(queryWrapper);
-            // 2.1 若重复，注册失败
-            if (count > 0) {
-                throw new BusinessException(Error.DUPLICATED_USERNAME_ERROR);
-            }
-            // 2.2 若不重复，插入记录
-            User user = new User();
-            user.setUsername(username);
-            // 密码加密
-            user.setPassword(DigestUtil.bcrypt(password));
-            // 分配 AK/SK
-            user.setAccessKey(UUID.randomUUID().toString(true));
-            user.setSecretKey(DigestUtil.sha256Hex(Constant.RANDOM_STRING + System.currentTimeMillis()));
-            boolean success = this.save(user);
-            // 3. 返回 userId
-            if (!success) {
-                throw new BusinessException(Error.SYSTEM_ERROR, "注册失败");
-            }
-            return user.getId();
-        }
+    public Long register(User user) {
+        return addUser(user);
     }
 
     @Override
     public UserVo login(String username, String password, HttpServletRequest request) {
         // 1. 校验参数
-        validate(username, password);
+        validateLogin(username, password);
         // 2. 判断用户是否存在
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(User::getUsername, username);
@@ -133,20 +146,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public boolean updateMyInfo(User user) {
-        String nickname = user.getNickname();
-        String password = user.getPassword();
-        if (nickname == null && password == null) {
-            throw new BusinessException(Error.PARAMS_ERROR, "没有要更新的内容");
-        }
-        if (nickname != null && nickname.length() < 2) {
-            throw new BusinessException(Error.PARAMS_ERROR, "昵称长度少于 2 位");
-        }
-        if (password != null && password.length() < 8) {
-            throw new BusinessException(Error.PARAMS_ERROR, "密码长度少于 8 位");
-        } else {
-            user.setPassword(DigestUtil.bcrypt(password));
-        }
-        return this.updateById(user);
+        return updateUser(user);
     }
 
     @Override
@@ -179,32 +179,41 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Long addUser(User user) {
-        boolean success = this.save(user);
-        if (!success) {
-            throw new BusinessException(Error.SYSTEM_ERROR, "添加用户失败");
+        // 1. 校验参数
+        validate(user, false);
+        // 2. 判断 username 是否重复
+        String username = user.getUsername();
+        synchronized (username.intern()) {
+            long count = this.count(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+            // 2.1 若重复，注册失败
+            if (count > 0) {
+                throw new BusinessException(Error.DUPLICATED_USERNAME_ERROR);
+            }
+            // 2.2 若不重复，插入记录
+            // 密码加密
+            user.setPassword(DigestUtil.bcrypt(user.getPassword()));
+            // 分配 AK/SK
+            user.setAccessKey(UUID.randomUUID().toString(true));
+            user.setSecretKey(DigestUtil.sha256Hex(Constant.RANDOM_STRING + System.currentTimeMillis()));
+            boolean success = this.save(user);
+            // 3. 返回 userId
+            if (!success) {
+                throw new BusinessException(Error.SYSTEM_ERROR, "注册失败");
+            }
+            return user.getId();
         }
-        return user.getId();
     }
 
     @Override
     public boolean updateUser(User user) {
-        String nickname = user.getNickname();
+        // 1. 校验参数
+        validate(user, true);
+        // 2. 加密密码
         String password = user.getPassword();
-        String role = user.getRole();
-        if (nickname == null && password == null && role == null) {
-            throw new BusinessException(Error.PARAMS_ERROR, "没有要更新的内容");
-        }
-        if (nickname != null && nickname.length() < 2) {
-            throw new BusinessException(Error.PARAMS_ERROR, "昵称长度少于 2 位");
-        }
-        if (password != null && password.length() < 8) {
-            throw new BusinessException(Error.PARAMS_ERROR, "密码长度少于 8 位");
-        } else {
+        if (password != null) {
             user.setPassword(DigestUtil.bcrypt(password));
         }
-        if (role != null && !role.equals("user") && !role.equals("admin")) {
-            throw new BusinessException(Error.PARAMS_ERROR, "角色不合法");
-        }
+        // 3. 更新记录
         return this.updateById(user);
     }
 

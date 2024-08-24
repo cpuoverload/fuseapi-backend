@@ -28,12 +28,12 @@ public class UserController {
         if (registerRequest == null) {
             throw new BusinessException(Error.PARAMS_ERROR);
         }
-        String username = registerRequest.getUsername();
-        String password = registerRequest.getPassword();
-        if (username == null || password == null) {
+        if (registerRequest.getUsername() == null || registerRequest.getPassword() == null) {
             throw new BusinessException(Error.PARAMS_ERROR);
         }
-        Long userId = userService.register(username, password);
+        User user = new User();
+        BeanUtils.copyProperties(registerRequest, user);
+        Long userId = userService.register(user);
         return ApiResponse.success(userId);
     }
 
@@ -107,6 +107,9 @@ public class UserController {
         if (addRequest == null) {
             throw new BusinessException(Error.PARAMS_ERROR);
         }
+        if (addRequest.getUsername() == null || addRequest.getPassword() == null) {
+            throw new BusinessException(Error.PARAMS_ERROR);
+        }
         User user = new User();
         BeanUtils.copyProperties(addRequest, user);
         Long userId = userService.addUser(user);
@@ -118,10 +121,6 @@ public class UserController {
     public ApiResponse<Boolean> updateUser(@RequestBody UpdateRequest updateRequest) {
         if (updateRequest == null) {
             throw new BusinessException(Error.PARAMS_ERROR);
-        }
-        Long userId = updateRequest.getId();
-        if (userId == null) {
-            throw new BusinessException(Error.PARAMS_ERROR, "userId 为 null");
         }
         User user = new User();
         BeanUtils.copyProperties(updateRequest, user);
